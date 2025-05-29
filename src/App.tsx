@@ -1,22 +1,34 @@
-import PopularityChart from './components/PopularityChart'
+import { useEffect, useState } from 'react';
+import * as d3 from 'd3';
+import PopularityChart from './components/PopularityChart';
+import nameData from './data/nameData.csv?raw';
 
-const nameData = [
-  { name: 'Emma', count: 120, color: '#FF6B6B' },
-  { name: 'Liam', count: 85, color: '#4ECDC4' },
-  { name: 'Olivia', count: 200, color: '#45B7D1' },
-  { name: 'Noah', count: 45, color: '#96CEB4' },
-  { name: 'Ava', count: 150, color: '#FFEEAD' }
-]
+interface DataItem {
+  name: string;
+  count: number;
+  color: string;
+}
 
 function App() {
+  const [data, setData] = useState<DataItem[]>([]);
+
+  useEffect(() => {
+    const parsedData = d3.csvParse(nameData, (d: any) => ({
+      name: d.name,
+      count: +d.count,
+      color: d.color
+    }));
+    setData(parsedData);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="container mx-auto px-4">
-        <h1 className="text-2xl font-bold mb-6">Name Popularity</h1>
-        <PopularityChart data={nameData} />
+        <h1 className="text-4xl font-bold text-center mb-8">Name Popularity Chart</h1>
+        <PopularityChart data={data} />
       </div>
     </div>
-  )
+  );
 }
 
-export default App 
+export default App; 
