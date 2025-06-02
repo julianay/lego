@@ -9,9 +9,10 @@ interface ColorData {
 interface PopularityChartProps {
   data: ColorData[];
   title: string;
+  total_count: number;
 }
 
-const PopularityChart = ({ data, title }: PopularityChartProps) => {
+const PopularityChart = ({ data, title, total_count }: PopularityChartProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -20,9 +21,16 @@ const PopularityChart = ({ data, title }: PopularityChartProps) => {
     // Clear previous chart
     d3.select(svgRef.current).selectAll('*').remove();
 
-    const width = 100;
-    const height = 100;
-    const radius = Math.min(width, height) / 2;
+    // Calculate size based on total_count
+    const maxCount = 5140; // Maximum count from the data (Star Wars theme)
+    const minSize = 20; // Minimum size for very small themes
+    const maxSize = 80; // Maximum size for large themes
+    // Use square root to make area proportional to count
+    const scale = Math.sqrt(total_count / maxCount) * (maxSize - minSize) + minSize;
+    
+    const width = scale + 2;  // Add 2px for stroke
+    const height = scale + 2; // Add 2px for stroke
+    const radius = Math.min(width, height) / 2 - 1; // Adjusted to account for stroke
 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
@@ -37,6 +45,13 @@ const PopularityChart = ({ data, title }: PopularityChartProps) => {
     const arc = d3.arc<d3.PieArcDatum<ColorData>>()
       .innerRadius(0)
       .outerRadius(radius);
+
+    // Add the outer circle for the border
+    svg.append('circle')
+      .attr('r', radius)
+      .attr('fill', 'none')
+      .attr('stroke', '#cccccc')
+      .style('stroke-width', '1px');
 
     const arcs = svg.selectAll('arc')
       .data(pie(data))
@@ -70,9 +85,10 @@ const PopularityChart = ({ data, title }: PopularityChartProps) => {
       .style('pointer-events', 'none');
 
     arcs.on('mouseover', function(_, d) {
+      const percentage = ((d.data.count / total_count) * 100).toFixed(1);
       tooltip
         .style('visibility', 'visible')
-        .html(`Color: ${d.data.color}<br/>Count: ${d.data.count}`);
+        .html(`Color: ${d.data.color}<br/>Count: ${d.data.count} (${percentage}%)<br/>Total: ${total_count}`);
     })
     .on('mousemove', function(event) {
       tooltip
@@ -83,12 +99,12 @@ const PopularityChart = ({ data, title }: PopularityChartProps) => {
       tooltip.style('visibility', 'hidden');
     });
 
-  }, [data]);
+  }, [data, total_count]);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="text-2xl font-semibold mb-4" style={{ fontSize: '0.7rem', lineHeight: '0.7rem' }}>{title}</div>
+    <div className="flex flex-col items-center w-full">
       <svg ref={svgRef}></svg>
+      <div className="text-2xl font-semibold mt-4 text-center w-full" style={{ fontSize: '0.7rem', lineHeight: '0.7rem' }}>{title}</div>
     </div>
   );
 };
